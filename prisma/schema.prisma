@@ -1,0 +1,172 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum IsCorrect {
+  PENDING
+  CORRECT
+  WRONG
+}
+
+enum RoleUser {
+  ADMIN
+  STUDENT
+  TEACHER
+}
+
+model User {
+  id        String    @id @default(uuid())
+  firstName String
+  lastName  String
+  email     String    @unique
+  password  String
+  image     String
+  role      RoleUser  @default(STUDENT)
+  isActive  Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  updateAt  DateTime  @updatedAt
+  results   Result[]
+  tests     Test[]
+  stars     Stars[]
+  comments  Comment[]
+  likes     Likes[]
+}
+
+model TestCategory {
+  id           String   @id @default(uuid())
+  categoryName String   @unique
+  image        String
+  createdAt    DateTime @default(now())
+  updateAt     DateTime @updatedAt
+  tests        Test[]
+}
+
+model Test {
+  id          String   @id @default(uuid())
+  title       String
+  description String
+  categoryId  String
+  teacherId   String
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updateAt    DateTime @updatedAt
+
+  category     TestCategory   @relation(fields: [categoryId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  Teacher      User           @relation(fields: [teacherId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  results      Result[]
+  testVariants TestVariants[]
+  questions    Question[]
+  stars        Stars[]
+  comments     Comment[]
+  likes        Likes[]
+}
+
+model Result {
+  id           String   @id @default(uuid())
+  studentId    String
+  testId       String
+  variantId    String
+  score        Int
+  completed_at DateTime @default(now())
+  createdAt    DateTime @default(now())
+  updateAt     DateTime @updatedAt
+
+  student       User           @relation(fields: [studentId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  test          Test           @relation(fields: [testId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  variant       TestVariants   @relation(fields: [variantId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  resultAnswers ResultAnswer[]
+}
+
+model TestVariants {
+  id        String   @id @default(uuid())
+  testId    String
+  name      String
+  createdAt DateTime @default(now())
+  updateAt  DateTime @updatedAt
+  results   Result[]
+
+  test Test @relation(fields: [testId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+}
+
+model Options {
+  id         String   @id @default(uuid())
+  questionId String
+  optionText String
+  isCorrect  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updateAt   DateTime @updatedAt
+
+  question      Question       @relation(fields: [questionId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  resultAnswers ResultAnswer[]
+}
+
+model Question {
+  id           String    @id @default(uuid())
+  testId       String
+  questionText String
+  createdAt    DateTime  @default(now())
+  updateAt     DateTime  @updatedAt
+  options      Options[]
+
+  test          Test           @relation(fields: [testId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  resultAnswers ResultAnswer[]
+}
+
+model ResultAnswer {
+  id             String    @id @default(uuid())
+  resultId       String
+  questionId     String
+  selectOptionId String
+  isCorrect      IsCorrect @default(PENDING)
+  answerAt       DateTime  @default(now())
+  createdAt      DateTime  @default(now())
+
+  result       Result   @relation(fields: [resultId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  question     Question @relation(fields: [questionId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  selectOption Options  @relation(fields: [selectOptionId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+}
+
+model Stars {
+  id        String   @id @default(uuid())
+  studentId String
+  testId    String
+  stars     Float    @default(0)
+  createdAt DateTime @default(now())
+
+  student User @relation(fields: [studentId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  test    Test @relation(fields: [testId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+}
+
+model Comment {
+  id          String   @id @default(uuid())
+  studentId   String
+  testId      String
+  commentText String
+  createdAt   DateTime @default(now())
+  updateAt    DateTime @updatedAt
+
+  student User @relation(fields: [studentId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  test    Test @relation(fields: [testId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+}
+
+model Likes {
+  id        String   @id @default(uuid())
+  studentId String
+  testId    String
+  createdAt DateTime @default(now())
+  updateAt  DateTime @updatedAt
+
+  student User @relation(fields: [studentId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  test    Test @relation(fields: [testId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+}
