@@ -8,9 +8,10 @@ import { MailModule } from './mail/mail.module';
 import { EskizService } from './eskiz/eskiz.service';
 import { TestCategoryModule } from './test-category/test-category.module';
 import { TestModule } from './test/test.module';
+import { TestVariantsModule } from './test-variants/test-variants.module';
 
 @Module({
-  imports: [PrismaModule, UsersModule, MailModule, TestCategoryModule, TestModule],
+  imports: [PrismaModule, UsersModule, MailModule, TestCategoryModule, TestModule, TestVariantsModule],
   controllers: [AppController],
   providers: [AppService, MailService, EskizService],
 })
