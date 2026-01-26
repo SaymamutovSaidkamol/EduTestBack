@@ -77,7 +77,7 @@ model Result {
   studentId    String
   testId       String
   variantId    String
-  score        Int
+  score        Int?
   completed_at DateTime @default(now())
   createdAt    DateTime @default(now())
   updateAt     DateTime @updatedAt

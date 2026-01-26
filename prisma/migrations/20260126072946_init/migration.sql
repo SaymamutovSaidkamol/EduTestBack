@@ -51,7 +51,7 @@ CREATE TABLE "Result" (
     "studentId" TEXT NOT NULL,
     "testId" TEXT NOT NULL,
     "variantId" TEXT NOT NULL,
-    "score" INTEGER NOT NULL,
+    "score" INTEGER,
     "completed_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updateAt" TIMESTAMP(3) NOT NULL,
