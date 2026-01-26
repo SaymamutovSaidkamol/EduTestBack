@@ -10,7 +10,7 @@ import { RoleUser } from 'src/enum/enums';
 export class TestVariantsController {
   constructor(private readonly testVariantsService: TestVariantsService) { }
 
-  @Roles(RoleUser.ADMIN, RoleUser.TEACHER)
+  @Roles(RoleUser.ADMIN)
   @UseGuards(AuthGuard)
   @Post()
   create(@Body() createTestVariantDto: CreateTestVariantDto) {
@@ -31,7 +31,7 @@ export class TestVariantsController {
   }
 
 
-  @Roles(RoleUser.ADMIN, RoleUser.TEACHER)
+  @Roles(RoleUser.ADMIN)
   @UseGuards(AuthGuard)
   @Patch(':id')
   update(@Param('id') id: string, @Body() updateTestVariantDto: UpdateTestVariantDto) {
