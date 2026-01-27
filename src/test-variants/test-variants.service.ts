@@ -21,10 +21,20 @@ export class TestVariantsService {
       const checkVariant = await this.prisma.testVariants.findFirst({
         where: {
           name: body.name,
+          testId: body.testId,
         },
       });
       if (checkVariant) {
         throw new BadRequestException('Variant already exists');
+      }
+
+      const checkTest = await this.prisma.test.findUnique({
+        where: {
+          id: body.testId,
+        },
+      });
+      if (!checkTest) {
+        throw new HttpException('Test not found', 404);
       }
 
       const createVariant = await this.prisma.testVariants.create({

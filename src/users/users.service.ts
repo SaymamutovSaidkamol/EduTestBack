@@ -5,6 +5,7 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import * as bcrypt from 'bcrypt';
 import { RoleUser } from 'src/enum/enums';
 import { JwtService } from '@nestjs/jwt';
+import * as ExcelJS from 'exceljs';
 
 import { config } from 'dotenv';
 import { totp } from 'otplib';
@@ -34,13 +35,46 @@ export class UsersService {
     throw new BadRequestException(error.message);
   }
 
+
+  async exportUsersToExcel() {
+    const users = await this.prisma.user.findMany();
+
+    if (!users || users.length === 0) {
+      throw new NotFoundException('Foydalanuvchilar topilmadi');
+    }
+
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Users');
+
+    worksheet.columns = [
+      { header: 'ID', key: 'id', width: 10 },
+      { header: 'Ism', key: 'name', width: 30 },
+      { header: 'Email', key: 'email', width: 30 },
+      { header: 'Rol', key: 'role', width: 15 },
+      { header: 'Holat', key: 'isActive', width: 10 },
+      { header: 'Yaratilgan sana', key: 'createdAt', width: 20 },
+    ];
+
+    users.forEach(user => {
+      worksheet.addRow({
+        id: user.id,
+        name: user.firstName, // bazadagi fieldga moslashtiring
+        email: user.email,
+        role: user.role,
+        isActive: user.isActive ? 'Faol' : 'Nofaol',
+        createdAt: user.createdAt.toISOString().split('T')[0],
+      });
+    });
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    return buffer;
+  }
+
+
   async register(body: RegisterUserDto) {
     try {
 
       let checkUser = await this.prisma.user.findFirst({ where: { email: body.email } })
-
-      console.log(checkUser);
-
 
       if (checkUser) {
         throw new BadRequestException("This User alredy exist!")
@@ -109,8 +143,6 @@ export class UsersService {
       if (!checkPassword) {
         throw new BadRequestException('Wrong password');
       }
-
-      let checkOtp = bcrypt.compareSync(body.password, checkUser.password)
 
       let accessToken = this.genAccessToken({
         userId: checkUser.id,
@@ -183,6 +215,7 @@ export class UsersService {
       if (!verifyOtp) {
         throw new BadRequestException("Wrong OTP Code❌")
       }
+
       await this.prisma.user.update({ where: { email: body.email }, data: { isActive: true } })
 
       return { message: "Your account has been successfully activated✅" }
@@ -208,7 +241,6 @@ export class UsersService {
   }
 
   async findAll(req: Request) {
-    console.log(req['user'].role);
 
     if (req['user'].role !== RoleUser.ADMIN) {
       throw new BadRequestException("Only admins are authorized to perform this action");
@@ -239,6 +271,7 @@ export class UsersService {
       this.Error(error)
     }
   }
+
 
   async update(id: string, body: UpdateUserDto, req: Request) {
     try {
@@ -277,10 +310,6 @@ export class UsersService {
         throw new NotFoundException("User Admin not found")
       }
 
-      if (role !== 'ADMIN') {
-        throw new BadRequestException("Only admins are authorized to perform this action");
-      }
-
       let checkUser = await this.prisma.user.findFirst({ where: { id } });
 
       if (!checkUser) {
@@ -297,8 +326,6 @@ export class UsersService {
           isActive: body.isActive,
         },
       });
-      console.log("updateUser", updateUser);
-
       return { message: "User updated successfully by admin✅" };
     } catch (error) {
       this.Error(error)
@@ -352,8 +379,6 @@ export class UsersService {
       let secret = otp_secret_reset_password + checkUser.email
 
       let verifyOtp = totp.verify({ token: String(body.otp), secret })
-
-      console.log(verifyOtp);
 
       if (!verifyOtp) {
         throw new BadRequestException("Wrong OTP Code❌")
@@ -418,7 +443,6 @@ export class UsersService {
       }
 
       let newAdmin = await this.prisma.user.create({ data: body })
-      console.log("updateUser", newAdmin);
 
       return { message: "User updated successfully by admin✅" };
     } catch (error) {

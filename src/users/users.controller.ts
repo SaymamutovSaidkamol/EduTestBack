@@ -1,9 +1,12 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Req } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Req, Res } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { resetPasswordDto, UpdateUserDto, UpdateUserForAdminDto } from './dto/update-user.dto';
 import { AddAdminUserDto, LoginUserDto, RegisterUserDto, ResetPasswordUserDto, SendOTPUserDto, VerifyOTPUserDto } from './dto/create-user.dto';
 import { AuthGuard } from 'src/auth/auth.guard';
 import { RoleGuard } from 'src/auth/role.guard';
+import { RoleUser } from 'src/enum/enums';
+import { Roles } from 'src/decorators/role.decorator';
+import { Response } from 'express';
 
 @Controller('users')
 export class UsersController {
@@ -63,10 +66,35 @@ export class UsersController {
     return this.usersService.findAll(req);
   }
 
+
+
+  @Get('export-to-excel')
+  @Roles(RoleUser.ADMIN)
+  @UseGuards(AuthGuard, RoleGuard)
+  async exportUsers(@Res() res: Response) {
+    const buffer = await this.usersService.exportUsersToExcel();
+
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    );
+    res.setHeader('Content-Disposition', 'attachment; filename=users.xlsx');
+
+    return res.send(buffer); // faqat shu bitta qator yetarli
+  }
+
   @UseGuards(AuthGuard)
   @Get(':id')
   findOne(@Param('id') id: string, @Req() req: Request) {
     return this.usersService.findOne(id, req);
+  }
+
+
+  @Roles(RoleUser.ADMIN)
+  @UseGuards(AuthGuard, RoleGuard)
+  @Patch('for-admin/:id')
+  updateForAdmin(@Param('id') id: string, @Body() UpdateUserForAdminDto: UpdateUserForAdminDto, @Req() req: Request) {
+    return this.usersService.updateForAdmin(id, UpdateUserForAdminDto, req);
   }
 
   @UseGuards(AuthGuard)
@@ -75,16 +103,6 @@ export class UsersController {
 
     return this.usersService.update(id, updateUserDto, req);
   }
-
-
-
-
-  @UseGuards(AuthGuard)
-  @Patch('for-admin/:id')
-  updateForAdmin(@Param('id') id: string, @Body() UpdateUserForAdminDto: UpdateUserForAdminDto, @Req() req: Request) {
-    return this.usersService.updateForAdmin(id, UpdateUserForAdminDto, req);
-  }
-
 
   @UseGuards(AuthGuard)
   @Delete(':id')
