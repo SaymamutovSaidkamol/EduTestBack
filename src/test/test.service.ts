@@ -18,93 +18,56 @@ export class TestService {
 
   async create(body: CreateTestDto, req: Request) {
     try {
+      const userId = req['user'].userId;
 
-      console.log(req['user'].userId);
-
-      const body_test = {
-        title: body.title,
-        description: body.description,
-        categoryId: body.categoryId,
-        teacherId: req['user'].userId,
-        isActive: body.isActive,
-      }
-
-      let checkUser = await this.prisma.user.findUnique({
-        where: {
-          id: req['user'].userId
-        }
-      })
+      // 1️⃣ User check
+      const checkUser = await this.prisma.user.findUnique({
+        where: { id: userId },
+      });
 
       if (!checkUser) {
         throw new HttpException('User not found', 404);
       }
 
-      let checkCategory = await this.prisma.testCategory.findUnique({
-        where: {
-          id: body.categoryId
-        }
-      })
+      // 2️⃣ Category check
+      const checkCategory = await this.prisma.testCategory.findUnique({
+        where: { id: body.categoryId },
+      });
 
       if (!checkCategory) {
         throw new HttpException('Category not found', 404);
       }
 
-      let newTest = await this.prisma.test.create({
-        data: body_test
-      })
+      // 3️⃣ Create test + questions + options
+      await this.prisma.test.create({
+        data: {
+          title: body.title,
+          description: body.description,
+          categoryId: body.categoryId,
+          teacherId: userId,
+          isActive: body.isActive,
 
-      const body_question = {
-        testId: newTest.id,
-        questionText: body.questions[0].questionText,
-      }
+          questions: {
+            create: body.questions.map((question) => ({
+              questionText: question.questionText,
 
-      let checkTest = await this.prisma.test.findUnique({
-        where: {
-          id: newTest.id
-        }
-      })
+              options: {
+                create: question.options.map((option) => ({
+                  optionText: option.optionText,
+                  isCorrect: option.isCorrect,
+                })),
+              },
+            })),
+          },
+        },
+      });
 
-      if (!checkTest) {
-        throw new HttpException('Test not found', 404);
-      }
-
-      let new_question = await this.prisma.question.create({
-        data: body_question
-      })
-
-      console.log(body_test);
-
-
-
-      const body_option = {
-        questionId: new_question.id,
-        optionText: body.questions[0].options[0].optionText,
-        isCorrect: body.questions[0].options[0].isCorrect,
-      }
-
-      let checkQuestion = await this.prisma.question.findUnique({
-        where: {
-          id: new_question.id
-        }
-      })
-
-      if (!checkQuestion) {
-        throw new HttpException('Question not found', 404);
-      }
-
-      let new_option = await this.prisma.options.create({
-        data: body_option
-      })
-
-      console.log(body_option);
-
-      return { message: 'Test created successfully' }
-
-
+      return { message: 'Test created successfully' };
     } catch (error) {
       this.Error(error);
     }
   }
+
 
   async findAll() {
 

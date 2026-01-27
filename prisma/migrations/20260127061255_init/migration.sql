@@ -1,3 +1,4 @@
+-- Active: 1768288610458@@127.0.0.1@5432@teacher_test_db@public
 -- CreateEnum
 CREATE TYPE "IsCorrect" AS ENUM ('PENDING', 'CORRECT', 'WRONG');
 
@@ -16,7 +17,6 @@ CREATE TABLE "User" (
     "isActive" BOOLEAN NOT NULL DEFAULT false,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updateAt" TIMESTAMP(3) NOT NULL,
-
     CONSTRAINT "User_pkey" PRIMARY KEY ("id")
 );
 
@@ -27,7 +27,6 @@ CREATE TABLE "TestCategory" (
     "image" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updateAt" TIMESTAMP(3) NOT NULL,
-
     CONSTRAINT "TestCategory_pkey" PRIMARY KEY ("id")
 );
 
@@ -41,7 +40,6 @@ CREATE TABLE "Test" (
     "isActive" BOOLEAN NOT NULL DEFAULT true,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updateAt" TIMESTAMP(3) NOT NULL,
-
     CONSTRAINT "Test_pkey" PRIMARY KEY ("id")
 );
 
@@ -55,9 +53,17 @@ CREATE TABLE "Result" (
     "completed_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updateAt" TIMESTAMP(3) NOT NULL,
-
     CONSTRAINT "Result_pkey" PRIMARY KEY ("id")
 );
+
+CREATE TYPE "ResultStatus" AS ENUM (
+  'IN_PROGRESS',
+  'FINISHED',
+  'TIMEOUT'
+);
+
+ALTER TABLE "Result"
+ADD COLUMN "status" "ResultStatus" NOT NULL DEFAULT 'IN_PROGRESS';
 
 -- CreateTable
 CREATE TABLE "TestVariants" (
@@ -66,7 +72,6 @@ CREATE TABLE "TestVariants" (
     "name" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updateAt" TIMESTAMP(3) NOT NULL,
-
     CONSTRAINT "TestVariants_pkey" PRIMARY KEY ("id")
 );
 
@@ -78,7 +83,6 @@ CREATE TABLE "Options" (
     "isCorrect" BOOLEAN NOT NULL DEFAULT false,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updateAt" TIMESTAMP(3) NOT NULL,
-
     CONSTRAINT "Options_pkey" PRIMARY KEY ("id")
 );
 
@@ -89,7 +93,6 @@ CREATE TABLE "Question" (
     "questionText" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updateAt" TIMESTAMP(3) NOT NULL,
-
     CONSTRAINT "Question_pkey" PRIMARY KEY ("id")
 );
 
@@ -98,11 +101,10 @@ CREATE TABLE "ResultAnswer" (
     "id" TEXT NOT NULL,
     "resultId" TEXT NOT NULL,
     "questionId" TEXT NOT NULL,
-    "selectOptionId" TEXT NOT NULL,
+    "selectOptionId" TEXT,
     "isCorrect" "IsCorrect" NOT NULL DEFAULT 'PENDING',
     "answerAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-
     CONSTRAINT "ResultAnswer_pkey" PRIMARY KEY ("id")
 );
 
@@ -113,7 +115,6 @@ CREATE TABLE "Stars" (
     "testId" TEXT NOT NULL,
     "stars" DOUBLE PRECISION NOT NULL DEFAULT 0,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-
     CONSTRAINT "Stars_pkey" PRIMARY KEY ("id")
 );
 
@@ -125,7 +126,6 @@ CREATE TABLE "Comment" (
     "commentText" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updateAt" TIMESTAMP(3) NOT NULL,
-
     CONSTRAINT "Comment_pkey" PRIMARY KEY ("id")
 );
 
@@ -136,63 +136,79 @@ CREATE TABLE "Likes" (
     "testId" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updateAt" TIMESTAMP(3) NOT NULL,
-
     CONSTRAINT "Likes_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateIndex
-CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
+CREATE UNIQUE INDEX "User_email_key" ON "User" ("email");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "TestCategory_categoryName_key" ON "TestCategory"("categoryName");
+CREATE UNIQUE INDEX "TestCategory_categoryName_key" ON "TestCategory" ("categoryName");
 
 -- AddForeignKey
-ALTER TABLE "Test" ADD CONSTRAINT "Test_categoryId_fkey" FOREIGN KEY ("categoryId") REFERENCES "TestCategory"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "Test"
+ADD CONSTRAINT "Test_categoryId_fkey" FOREIGN KEY ("categoryId") REFERENCES "TestCategory" ("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Test" ADD CONSTRAINT "Test_teacherId_fkey" FOREIGN KEY ("teacherId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "Test"
+ADD CONSTRAINT "Test_teacherId_fkey" FOREIGN KEY ("teacherId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Result" ADD CONSTRAINT "Result_studentId_fkey" FOREIGN KEY ("studentId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "Result"
+ADD CONSTRAINT "Result_studentId_fkey" FOREIGN KEY ("studentId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Result" ADD CONSTRAINT "Result_testId_fkey" FOREIGN KEY ("testId") REFERENCES "Test"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "Result"
+ADD CONSTRAINT "Result_testId_fkey" FOREIGN KEY ("testId") REFERENCES "Test" ("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Result" ADD CONSTRAINT "Result_variantId_fkey" FOREIGN KEY ("variantId") REFERENCES "TestVariants"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "Result"
+ADD CONSTRAINT "Result_variantId_fkey" FOREIGN KEY ("variantId") REFERENCES "TestVariants" ("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "TestVariants" ADD CONSTRAINT "TestVariants_testId_fkey" FOREIGN KEY ("testId") REFERENCES "Test"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "TestVariants"
+ADD CONSTRAINT "TestVariants_testId_fkey" FOREIGN KEY ("testId") REFERENCES "Test" ("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Options" ADD CONSTRAINT "Options_questionId_fkey" FOREIGN KEY ("questionId") REFERENCES "Question"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "Options"
+ADD CONSTRAINT "Options_questionId_fkey" FOREIGN KEY ("questionId") REFERENCES "Question" ("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Question" ADD CONSTRAINT "Question_testId_fkey" FOREIGN KEY ("testId") REFERENCES "Test"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "Question"
+ADD CONSTRAINT "Question_testId_fkey" FOREIGN KEY ("testId") REFERENCES "Test" ("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "ResultAnswer" ADD CONSTRAINT "ResultAnswer_resultId_fkey" FOREIGN KEY ("resultId") REFERENCES "Result"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "ResultAnswer"
+ADD CONSTRAINT "ResultAnswer_questionId_fkey" FOREIGN KEY ("questionId") REFERENCES "Question" ("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "ResultAnswer" ADD CONSTRAINT "ResultAnswer_questionId_fkey" FOREIGN KEY ("questionId") REFERENCES "Question"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "ResultAnswer"
+ADD CONSTRAINT "ResultAnswer_resultId_fkey" FOREIGN KEY ("resultId") REFERENCES "Result" ("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "ResultAnswer" ADD CONSTRAINT "ResultAnswer_selectOptionId_fkey" FOREIGN KEY ("selectOptionId") REFERENCES "Options"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "ResultAnswer"
+ADD CONSTRAINT "ResultAnswer_selectOptionId_fkey" FOREIGN KEY ("selectOptionId") REFERENCES "Options" ("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Stars" ADD CONSTRAINT "Stars_studentId_fkey" FOREIGN KEY ("studentId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "Stars"
+ADD CONSTRAINT "Stars_studentId_fkey" FOREIGN KEY ("studentId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Stars" ADD CONSTRAINT "Stars_testId_fkey" FOREIGN KEY ("testId") REFERENCES "Test"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "Stars"
+ADD CONSTRAINT "Stars_testId_fkey" FOREIGN KEY ("testId") REFERENCES "Test" ("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Comment" ADD CONSTRAINT "Comment_studentId_fkey" FOREIGN KEY ("studentId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "Comment"
+ADD CONSTRAINT "Comment_studentId_fkey" FOREIGN KEY ("studentId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Comment" ADD CONSTRAINT "Comment_testId_fkey" FOREIGN KEY ("testId") REFERENCES "Test"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "Comment"
+ADD CONSTRAINT "Comment_testId_fkey" FOREIGN KEY ("testId") REFERENCES "Test" ("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Likes" ADD CONSTRAINT "Likes_studentId_fkey" FOREIGN KEY ("studentId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "Likes"
+ADD CONSTRAINT "Likes_studentId_fkey" FOREIGN KEY ("studentId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Likes" ADD CONSTRAINT "Likes_testId_fkey" FOREIGN KEY ("testId") REFERENCES "Test"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "Likes"
+ADD CONSTRAINT "Likes_testId_fkey" FOREIGN KEY ("testId") REFERENCES "Test" ("id") ON DELETE CASCADE ON UPDATE CASCADE;
