@@ -118,10 +118,12 @@ model Stars {
   id        String   @id @default(uuid())
   studentId String
   testId    String
-  stars     Float    @default(0)
+  stars     Float
   createdAt DateTime @default(now())
   student   User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
   test      Test     @relation(fields: [testId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, testId])
 }
 
 model Comment {
