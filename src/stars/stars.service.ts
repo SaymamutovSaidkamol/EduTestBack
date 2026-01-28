@@ -82,14 +82,7 @@ export class StarsService {
         data: star,
       };
     } catch (error) {
-      if (error instanceof HttpException) {
-        throw error;
-      }
-
-      throw new HttpException(
-        'Internal server error',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      this.Error(error);
     }
   }
 
@@ -165,11 +158,20 @@ export class StarsService {
     }
   }
 
-  async findOne(id: number) {
+  async findOne(id: string) {
     try {
 
-    } catch (error) {
+      let checkStar = await this.prisma.stars.findUnique({
+        where: { id },
+      });
 
+      if (!checkStar) {
+        throw new HttpException('Star not found', HttpStatus.NOT_FOUND);
+      }
+
+      return { data: checkStar };
+    } catch (error) {
+      this.Error(error);
     }
   }
 
@@ -254,7 +256,7 @@ export class StarsService {
         data: star,
       };
     } catch (error) {
-
+      this.Error(error);
     }
   }
 }
