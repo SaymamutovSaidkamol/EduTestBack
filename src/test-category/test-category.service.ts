@@ -1,6 +1,7 @@
 import { BadRequestException, HttpException, Injectable } from '@nestjs/common';
 import { CreateTestCategoryDto } from './dto/create-test-category.dto';
 import { UpdateTestCategoryDto } from './dto/update-test-category.dto';
+import { QueryTestCategoryDto } from './dto/query.test-category.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { RoleUser } from 'src/enum/enums';
 
@@ -31,10 +32,39 @@ export class TestCategoryService {
     }
   }
 
-  async findAll() {
+  async findAll(query: QueryTestCategoryDto) {
     try {
-      let categories = await this.prisma.testCategory.findMany()
-      return { message: "Categories fetched successfully", data: categories }
+      const { categoryName, page = 1, limit = 10, sortBy = 'createdAt', sortOrder = 'desc' } = query;
+
+      const skip = (page - 1) * Number(limit);
+      const take = Number(limit);
+
+      const where: any = {};
+
+      if (categoryName) {
+        where.categoryName = { contains: categoryName, mode: 'insensitive' };
+      }
+
+      const [categories, total] = await Promise.all([
+        this.prisma.testCategory.findMany({
+          where,
+          skip,
+          take,
+          orderBy: { [sortBy]: sortOrder },
+        }),
+        this.prisma.testCategory.count({ where }),
+      ]);
+
+      return {
+        message: "Categories fetched successfully",
+        data: categories,
+        meta: {
+          total,
+          page: Number(page),
+          limit: Number(limit),
+          totalPages: Math.ceil(total / Number(limit)),
+        },
+      };
     } catch (error) {
       this.Error(error);
     }

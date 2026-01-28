@@ -6,6 +6,8 @@ import { RoleUser } from 'src/enum/enums';
 
 import * as path from 'path';
 import { existsSync } from 'fs';
+import { QueryTestDto } from './dto/query.test.dto';
+import { UpdateTestDto } from './dto/update-test.dto';
 
 @Injectable()
 export class TestService {
@@ -72,49 +74,101 @@ export class TestService {
   }
 
 
-  async findAll() {
-
+  async findAll(query: QueryTestDto) {
     try {
-      let allTest = await this.prisma.test.findMany({ include: { questions: { include: { options: true } }, _count: { select: { stars: true, comments: true, likes: true } } } })
+      const {
+        search,
+        title,
+        categoryId,
+        isActive,
+        page = 1,
+        limit = 10,
+        sortBy = 'createdAt',
+        sortOrder = 'desc',
+      } = query;
 
-      if (!allTest) {
-        throw new HttpException('Test not found', 404);
+
+      const skip = (page - 1) * Number(limit);
+      const take = Number(limit);
+
+      // 1️⃣ Where filter
+      const where: any = {};
+
+      if (title) {
+        where.title = { contains: title, mode: 'insensitive' };
+      } else if (search) {
+        where.OR = [
+          { title: { contains: search, mode: 'insensitive' } },
+          { description: { contains: search, mode: 'insensitive' } },
+        ];
       }
 
-      // return { allTest }
+      if (categoryId) {
+        where.categoryId = categoryId;
+      }
 
-      // 2️⃣ Har bir test uchun stars avg va foiz hisoblash
-      const testsWithStars = await Promise.all(
-        allTest.map(async (test) => {
-          // Barcha stars larni olish
-          const stars = await this.prisma.stars.findMany({
-            where: { testId: test.id },
-            select: { stars: true },
-          });
+      if (isActive !== undefined) {
+        if (typeof isActive === 'string') {
+          where.isActive = isActive === 'true'; // "true" → true, "false" → false
+        } else {
+          where.isActive = Boolean(isActive); // all other cases
+        }
+      }
 
-          let avgStar = 0;
-          let starsPercent = 0;
-
-          if (stars.length > 0) {
-            const totalScore = stars.reduce((sum, s) => sum + s.stars, 0);
-            avgStar = totalScore / stars.length;
-            starsPercent = (avgStar / 5) * 100;
-          }
-
-          return {
-            ...test,
-            average_star: Number(avgStar.toFixed(2)),
-            stars_percent: Number(starsPercent.toFixed(2)),
-            stars_count: stars.length,
-          };
+      // 2️⃣ Barcha testlarni pagination bilan olish
+      const [allTest, total] = await Promise.all([
+        this.prisma.test.findMany({
+          where,
+          skip,
+          take,
+          orderBy: { [sortBy]: sortOrder },
+          include: {
+            questions: { include: { options: true } },
+            _count: { select: { stars: true, comments: true, likes: true } },
+          },
         }),
-      );
+        this.prisma.test.count({ where }),
+      ]);
 
-      return { allTests: testsWithStars };
+      if (!allTest || allTest.length === 0) {
+        return {
+          allTests: [],
+          meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
+        };
+      }
+
+      // 3️⃣ Barcha starslarni bitta query bilan olish va avg hisoblash
+      const starsGrouped = await this.prisma.stars.groupBy({
+        by: ['testId'],
+        _avg: { stars: true },
+        _count: { stars: true },
+        where: { testId: { in: allTest.map((t) => t.id) } },
+      });
+
+      // 4️⃣ Testlarga avgStar va starsPercent biriktirish
+      const testsWithStars = allTest.map((test) => {
+        const starData = starsGrouped.find((g) => g.testId === test.id);
+        const avgStar = starData?._avg?.stars ?? 0;
+        const starsPercent = (avgStar / 5) * 100;
+        const starsCount = starData?._count?.stars ?? 0;
+
+        return {
+          ...test,
+          average_star: Number(avgStar.toFixed(2)),
+          stars_percent: Number(starsPercent.toFixed(2)),
+          stars_count: starsCount,
+        };
+      });
+
+      return {
+        allTests: testsWithStars,
+        meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
+      };
     } catch (error) {
       this.Error(error);
     }
   }
+
 
   async findOne(id: string) {
     try {
@@ -125,6 +179,33 @@ export class TestService {
       }
 
       return { test }
+    } catch (error) {
+      this.Error(error);
+    }
+  }
+
+  async update(id: string, body: UpdateTestDto, req: Request) {
+    try {
+
+      let checkUser = await this.prisma.user.findUnique({ where: { id: req['user'].userId } })
+
+      if (!checkUser) {
+        throw new HttpException('User not found', 404);
+      }
+
+      let test = await this.prisma.test.findUnique({ where: { id } })
+
+      if (!test) {
+        throw new HttpException('Test not found', 404);
+      }
+
+      if (checkUser.role !== RoleUser.ADMIN && checkUser.id !== test.teacherId) {
+        throw new HttpException('You are not authorized', 401);
+      }
+
+      let updateTest = await this.prisma.test.update({ where: { id }, data: body })
+
+      return { data: updateTest, message: 'Test updated successfully' }
     } catch (error) {
       this.Error(error);
     }
@@ -182,97 +263,6 @@ export class TestService {
     }
   }
 
-  // async exportTestsToPDF(): Promise<Buffer> {
-  //   // 1️⃣ Testlarni olish
-  //   const tests = await this.prisma.test.findMany({
-  //     include: {
-  //       questions: {
-  //         include: {
-  //           options: true, // variantlarni olish
-  //         },
-  //       },
-  //     },
-  //   });
-
-  //   if (!tests || tests.length === 0) {
-  //     throw new NotFoundException('Testlar topilmadi');
-  //   }
-
-  //   // 2️⃣ PDF yaratish
-  //   const doc = new PDFDocument({ margin: 30 });
-  //   const buffers: Uint8Array[] = [];
-
-  //   doc.on('data', (chunk) => buffers.push(chunk));
-  //   doc.on('end', () => { });
-
-  //   // 3️⃣ Logo yo'li (dev va build uchun)
-  //   const logoPath = path.resolve(__dirname, '..', '..', 'assets', 'logo.png');
-
-  //   if (!existsSync(logoPath)) {
-  //     throw new NotFoundException(`Logo topilmadi: ${logoPath}`);
-  //   }
-
-  //   // 4️⃣ PDF sahifa kengligi
-  //   const pageWidth = doc.page.width;
-
-  //   // 5️⃣ Logo + EduTest markazlashgan
-  //   const logoWidth = 60;
-  //   const logoX = (pageWidth - logoWidth - 120) / 2; // 120 → matn uchun joy
-  //   const logoY = 40;
-
-  //   doc.image(logoPath, logoX, logoY, { width: logoWidth })
-  //     .font('Helvetica-Bold')
-  //     .fontSize(28)
-  //     .fillColor('black')
-  //     .text('EduTest', logoX + logoWidth + 10, logoY + 10);
-
-  //   // 6️⃣ Tagiga chiziq
-  //   const lineY = logoY + 60;
-  //   doc.moveTo(50, lineY)
-  //     .lineTo(pageWidth - 50, lineY)
-  //     .strokeColor('#000000')
-  //     .lineWidth(1)
-  //     .stroke();
-
-  //   doc.moveDown(3);
-
-  //   // 7️⃣ Sarlavha
-  //   doc.fontSize(18).fillColor('black').text('Testlar ro‘yxati', { align: 'center' });
-  //   doc.moveDown();
-
-  //   // 8️⃣ Testlar va savollar
-  //   tests.forEach((test, index) => {
-  //     doc.fontSize(14).fillColor('black')
-  //       .text(`${index + 1}. Test: ${test.title}`, { align: 'left' });
-  //     doc.fontSize(12).fillColor('gray')
-  //       .text(`Tavsif: ${test.description}`, { align: 'left' });
-  //     doc.moveDown(0.5);
-
-  //     test.questions.forEach((question, qIndex) => {
-  //       doc.fontSize(12).fillColor('black')
-  //         .text(`   ${qIndex + 1}) ${question.questionText}`, { align: 'left' });
-
-  //       question.options.forEach((option, oIndex) => {
-  //         const label = String.fromCharCode(65 + oIndex);
-  //         doc.fontSize(11).fillColor('black')
-  //           .text(`       ${label}) ${option.optionText} ${option.isCorrect ? '(To‘g‘ri)' : ''}`, { align: 'left' });
-  //       });
-
-  //       doc.moveDown(0.5);
-  //     });
-
-  //     doc.moveDown(1);
-  //   });
-
-  //   doc.end();
-
-  //   // 9️⃣ Buffer qaytarish
-  //   return new Promise<Buffer>((resolve, reject) => {
-  //     doc.on('end', () => resolve(Buffer.concat(buffers)));
-  //     doc.on('error', (err) => reject(err));
-  //   });
-
-  // }
 
   async exportTestsToPDF(): Promise<Buffer> {
     // 1️⃣ Testlarni olish
@@ -299,6 +289,8 @@ export class TestService {
 
     // 3️⃣ Logo yo'li
     const logoPath = path.resolve(__dirname, '..', '..', 'assets', 'logo.png');
+
+    console.log(logoPath);
 
     if (!existsSync(logoPath)) {
       throw new NotFoundException(`Logo topilmadi: ${logoPath}`);

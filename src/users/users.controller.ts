@@ -1,7 +1,8 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Req, Res } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Req, Res, Query } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { resetPasswordDto, UpdateUserDto, UpdateUserForAdminDto } from './dto/update-user.dto';
 import { AddAdminUserDto, LoginUserDto, RegisterUserDto, ResetPasswordUserDto, SendOTPUserDto, VerifyOTPUserDto } from './dto/create-user.dto';
+import { QueryUserDto } from './dto/query-user.dto';
 import { AuthGuard } from 'src/auth/auth.guard';
 import { RoleGuard } from 'src/auth/role.guard';
 import { RoleUser } from 'src/enum/enums';
@@ -46,14 +47,6 @@ export class UsersController {
     return this.usersService.resetPasswordOTP(SendOTPUserDto, req);
   }
 
-
-  @UseGuards(AuthGuard)
-  @Post('reset-password/verify-otp')
-  resetPassword(@Body() ResetPasswordUserDto: ResetPasswordUserDto, @Req() req: Request) {
-
-    return this.usersService.resetPassword(ResetPasswordUserDto, req);
-  }
-
   @UseGuards(AuthGuard)
   @Get('me')
   getMe(@Req() req: Request) {
@@ -62,8 +55,8 @@ export class UsersController {
 
   @UseGuards(AuthGuard)
   @Get()
-  findAll(@Req() req: Request) {
-    return this.usersService.findAll(req);
+  findAll(@Query() query: QueryUserDto, @Req() req: Request) {
+    return this.usersService.findAll(query, req);
   }
 
 
@@ -89,6 +82,13 @@ export class UsersController {
     return this.usersService.findOne(id, req);
   }
 
+  @UseGuards(AuthGuard)
+  @Patch('reset-password')
+  resetPassword(@Param('id') id: string, @Body() ResetPasswordUserDto: ResetPasswordUserDto, @Req() req: Request) {
+
+    return this.usersService.resetPassword(id, ResetPasswordUserDto, req);
+  }
+
 
   @Roles(RoleUser.ADMIN)
   @UseGuards(AuthGuard, RoleGuard)
@@ -105,7 +105,7 @@ export class UsersController {
   }
 
   @UseGuards(AuthGuard)
-  @Delete(':id')
+  @Delete('delete-account/:id')
   remove(@Param('id') id: string, @Req() req: Request) {
     return this.usersService.remove(id, req);
   }

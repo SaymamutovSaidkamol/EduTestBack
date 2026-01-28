@@ -1,7 +1,8 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Req } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Req, Query } from '@nestjs/common';
 import { TestVariantsService } from './test-variants.service';
 import { CreateTestVariantDto } from './dto/create-test-variant.dto';
 import { UpdateTestVariantDto } from './dto/update-test-variant.dto';
+import { QueryTestVariantDto } from './dto/query-test-variant.dto';
 import { AuthGuard } from 'src/auth/auth.guard';
 import { Roles } from 'src/decorators/role.decorator';
 import { RoleUser } from 'src/enum/enums';
@@ -19,8 +20,8 @@ export class TestVariantsController {
 
   @UseGuards(AuthGuard)
   @Get()
-  findAll() {
-    return this.testVariantsService.findAll();
+  findAll(@Query() query: QueryTestVariantDto) {
+    return this.testVariantsService.findAll(query);
   }
 
 

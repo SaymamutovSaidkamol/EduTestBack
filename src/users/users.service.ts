@@ -1,6 +1,7 @@
 import { BadRequestException, HttpException, Injectable, NotAcceptableException, NotFoundException } from '@nestjs/common';
 import { AddAdminUserDto, isValidPassword, LoginUserDto, RegisterUserDto, ResetPasswordUserDto, SendOTPUserDto, VerifyOTPUserDto } from './dto/create-user.dto';
 import { resetPasswordDto, UpdateUserDto, UpdateUserForAdminDto } from './dto/update-user.dto';
+import { QueryUserDto } from './dto/query-user.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import * as bcrypt from 'bcrypt';
 import { RoleUser } from 'src/enum/enums';
@@ -244,15 +245,63 @@ export class UsersService {
     }
   }
 
-  async findAll(req: Request) {
+  async findAll(query: QueryUserDto, req: Request) {
 
     if (req['user'].role !== RoleUser.ADMIN) {
       throw new BadRequestException("Only admins are authorized to perform this action");
     }
 
-    let allUser = await this.prisma.user.findMany()
+    const { firstName, lastName, email, role, isActive, page = 1, limit = 10, sortBy = 'createdAt', sortOrder = 'desc' } = query;
 
-    return { data: allUser };
+    const skip = (page - 1) * Number(limit);
+    const take = Number(limit);
+
+    const where: any = {};
+
+    if (firstName) {
+      where.firstName = { contains: firstName, mode: 'insensitive' };
+    }
+
+    if (lastName) {
+      where.lastName = { contains: lastName, mode: 'insensitive' };
+    }
+
+    if (email) {
+      where.email = { contains: email, mode: 'insensitive' };
+    }
+
+    if (role) {
+      where.role = role;
+    }
+
+    if (isActive !== undefined) {
+      if (typeof isActive === 'string') {
+        where.isActive = isActive === 'true'; // "true" → true, "false" → false
+      } else {
+        where.isActive = Boolean(isActive); // all other cases
+      }
+    }
+
+    const [users, total] = await Promise.all([
+      this.prisma.user.findMany({
+        where,
+        skip,
+        take,
+        orderBy: { [sortBy]: sortOrder },
+      }),
+      this.prisma.user.count({ where }),
+    ]);
+
+    return {
+      message: "Users fetched successfully",
+      data: users,
+      meta: {
+        total,
+        page: Number(page),
+        limit: Number(limit),
+        totalPages: Math.ceil(total / Number(limit)),
+      },
+    };
   }
 
   async findOne(id: string, req: Request) {
@@ -370,14 +419,18 @@ export class UsersService {
     }
   }
 
-  async resetPassword(body: ResetPasswordUserDto, req: Request) {
+  async resetPassword(id: string, body: ResetPasswordUserDto, req: Request) {
     try {
       let userId = req['user'].userId;
 
-      let checkUser = await this.prisma.user.findFirst({ where: { id: userId } })
+      let checkUser = await this.prisma.user.findUnique({ where: { id } })
 
       if (!checkUser) {
         throw new NotFoundException("User not found")
+      }
+
+      if (checkUser.id !== userId) {
+        throw new BadRequestException("You are not authorized to reset this user's password")
       }
 
       let secret = otp_secret_reset_password + checkUser.email
