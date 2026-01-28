@@ -48,8 +48,10 @@ export class UsersService {
 
     worksheet.columns = [
       { header: 'ID', key: 'id', width: 10 },
-      { header: 'Ism', key: 'name', width: 30 },
+      { header: 'Ism', key: 'firstName', width: 30 },
+      { header: 'Familya', key: 'lastName', width: 30 },
       { header: 'Email', key: 'email', width: 30 },
+      { header: 'Password', key: 'password', width: 30 },
       { header: 'Rol', key: 'role', width: 15 },
       { header: 'Holat', key: 'isActive', width: 10 },
       { header: 'Yaratilgan sana', key: 'createdAt', width: 20 },
@@ -58,8 +60,10 @@ export class UsersService {
     users.forEach(user => {
       worksheet.addRow({
         id: user.id,
-        name: user.firstName, // bazadagi fieldga moslashtiring
+        firstName: user.firstName,
+        lastName: user.lastName,
         email: user.email,
+        password: user.password,
         role: user.role,
         isActive: user.isActive ? 'Faol' : 'Nofaol',
         createdAt: user.createdAt.toISOString().split('T')[0],
