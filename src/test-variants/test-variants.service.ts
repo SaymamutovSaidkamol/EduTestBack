@@ -1,6 +1,7 @@
 import { BadRequestException, HttpException, Injectable } from '@nestjs/common';
 import { CreateTestVariantDto } from './dto/create-test-variant.dto';
 import { UpdateTestVariantDto } from './dto/update-test-variant.dto';
+import { QueryTestVariantDto } from './dto/query-test-variant.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
@@ -46,20 +47,44 @@ export class TestVariantsService {
     }
   }
 
-  async findAll() {
+  async findAll(query: QueryTestVariantDto) {
     try {
+      const { name, testId, page = 1, limit = 10, sortBy = 'createdAt', sortOrder = 'desc' } = query;
 
-      const findAllVariant = await this.prisma.testVariants.findMany({
-        include: {
-          test: true,
-        },
-      });
+      const skip = (page - 1) * Number(limit);
+      const take = Number(limit);
 
-      if (!findAllVariant) {
-        throw new HttpException('Variant not found', 404);
+      const where: any = {};
+
+      if (name) {
+        where.name = { contains: name, mode: 'insensitive' };
       }
 
-      return { data: findAllVariant };
+      if (testId) {
+        where.testId = testId;
+      }
+
+      const [variants, total] = await Promise.all([
+        this.prisma.testVariants.findMany({
+          where,
+          skip,
+          take,
+          orderBy: { [sortBy]: sortOrder },
+          include: { test: true },
+        }),
+        this.prisma.testVariants.count({ where }),
+      ]);
+
+      return {
+        message: "Test variants fetched successfully",
+        data: variants,
+        meta: {
+          total,
+          page: Number(page),
+          limit: Number(limit),
+          totalPages: Math.ceil(total / Number(limit)),
+        },
+      };
 
     } catch (error) {
       this.Error(error)

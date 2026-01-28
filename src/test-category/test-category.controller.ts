@@ -1,7 +1,8 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Req } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Req, Query } from '@nestjs/common';
 import { TestCategoryService } from './test-category.service';
 import { CreateTestCategoryDto } from './dto/create-test-category.dto';
 import { UpdateTestCategoryDto } from './dto/update-test-category.dto';
+import { QueryTestCategoryDto } from './dto/query.test-category.dto';
 import { Roles } from 'src/decorators/role.decorator';
 import { RoleUser } from 'src/enum/enums';
 import { AuthGuard } from 'src/auth/auth.guard';
@@ -19,8 +20,8 @@ export class TestCategoryController {
   }
 
   @Get()
-  findAll() {
-    return this.testCategoryService.findAll();
+  findAll(@Query() query: QueryTestCategoryDto) {
+    return this.testCategoryService.findAll(query);
   }
 
   @Get(':id')
