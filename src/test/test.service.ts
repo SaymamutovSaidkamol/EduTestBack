@@ -1,8 +1,11 @@
-import { BadRequestException, HttpException, Injectable } from '@nestjs/common';
+import { BadRequestException, HttpException, Injectable, NotFoundException } from '@nestjs/common';
 import { CreateTestDto } from './dto/create-test.dto';
-import { UpdateTestDto } from './dto/update-test.dto';
+import * as PDFDocument from 'pdfkit';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { RoleUser } from 'src/enum/enums';
+
+import * as path from 'path';
+import { existsSync } from 'fs';
 
 @Injectable()
 export class TestService {
@@ -178,4 +181,193 @@ export class TestService {
       this.Error(error);
     }
   }
+
+  // async exportTestsToPDF(): Promise<Buffer> {
+  //   // 1️⃣ Testlarni olish
+  //   const tests = await this.prisma.test.findMany({
+  //     include: {
+  //       questions: {
+  //         include: {
+  //           options: true, // variantlarni olish
+  //         },
+  //       },
+  //     },
+  //   });
+
+  //   if (!tests || tests.length === 0) {
+  //     throw new NotFoundException('Testlar topilmadi');
+  //   }
+
+  //   // 2️⃣ PDF yaratish
+  //   const doc = new PDFDocument({ margin: 30 });
+  //   const buffers: Uint8Array[] = [];
+
+  //   doc.on('data', (chunk) => buffers.push(chunk));
+  //   doc.on('end', () => { });
+
+  //   // 3️⃣ Logo yo'li (dev va build uchun)
+  //   const logoPath = path.resolve(__dirname, '..', '..', 'assets', 'logo.png');
+
+  //   if (!existsSync(logoPath)) {
+  //     throw new NotFoundException(`Logo topilmadi: ${logoPath}`);
+  //   }
+
+  //   // 4️⃣ PDF sahifa kengligi
+  //   const pageWidth = doc.page.width;
+
+  //   // 5️⃣ Logo + EduTest markazlashgan
+  //   const logoWidth = 60;
+  //   const logoX = (pageWidth - logoWidth - 120) / 2; // 120 → matn uchun joy
+  //   const logoY = 40;
+
+  //   doc.image(logoPath, logoX, logoY, { width: logoWidth })
+  //     .font('Helvetica-Bold')
+  //     .fontSize(28)
+  //     .fillColor('black')
+  //     .text('EduTest', logoX + logoWidth + 10, logoY + 10);
+
+  //   // 6️⃣ Tagiga chiziq
+  //   const lineY = logoY + 60;
+  //   doc.moveTo(50, lineY)
+  //     .lineTo(pageWidth - 50, lineY)
+  //     .strokeColor('#000000')
+  //     .lineWidth(1)
+  //     .stroke();
+
+  //   doc.moveDown(3);
+
+  //   // 7️⃣ Sarlavha
+  //   doc.fontSize(18).fillColor('black').text('Testlar ro‘yxati', { align: 'center' });
+  //   doc.moveDown();
+
+  //   // 8️⃣ Testlar va savollar
+  //   tests.forEach((test, index) => {
+  //     doc.fontSize(14).fillColor('black')
+  //       .text(`${index + 1}. Test: ${test.title}`, { align: 'left' });
+  //     doc.fontSize(12).fillColor('gray')
+  //       .text(`Tavsif: ${test.description}`, { align: 'left' });
+  //     doc.moveDown(0.5);
+
+  //     test.questions.forEach((question, qIndex) => {
+  //       doc.fontSize(12).fillColor('black')
+  //         .text(`   ${qIndex + 1}) ${question.questionText}`, { align: 'left' });
+
+  //       question.options.forEach((option, oIndex) => {
+  //         const label = String.fromCharCode(65 + oIndex);
+  //         doc.fontSize(11).fillColor('black')
+  //           .text(`       ${label}) ${option.optionText} ${option.isCorrect ? '(To‘g‘ri)' : ''}`, { align: 'left' });
+  //       });
+
+  //       doc.moveDown(0.5);
+  //     });
+
+  //     doc.moveDown(1);
+  //   });
+
+  //   doc.end();
+
+  //   // 9️⃣ Buffer qaytarish
+  //   return new Promise<Buffer>((resolve, reject) => {
+  //     doc.on('end', () => resolve(Buffer.concat(buffers)));
+  //     doc.on('error', (err) => reject(err));
+  //   });
+
+  // }
+
+  async exportTestsToPDF(): Promise<Buffer> {
+    // 1️⃣ Testlarni olish
+    const tests = await this.prisma.test.findMany({
+      include: {
+        questions: {
+          include: {
+            options: true,
+          },
+        },
+      },
+    });
+
+    if (!tests || tests.length === 0) {
+      throw new NotFoundException('Testlar topilmadi');
+    }
+
+    // 2️⃣ PDF yaratish
+    const doc = new PDFDocument({ margin: 30 });
+    const buffers: Uint8Array[] = [];
+
+    doc.on('data', (chunk) => buffers.push(chunk));
+    doc.on('end', () => { });
+
+    // 3️⃣ Logo yo'li
+    const logoPath = path.resolve(__dirname, '..', '..', 'assets', 'logo.png');
+
+    if (!existsSync(logoPath)) {
+      throw new NotFoundException(`Logo topilmadi: ${logoPath}`);
+    }
+
+    // 4️⃣ Sahifa kengligi
+    const pageWidth = doc.page.width;
+
+    // 5️⃣ Logo + EduTest markazlashgan
+    const logoWidth = 60;
+    const logoX = (pageWidth - logoWidth - 120) / 2; // 120 → matn uchun joy
+    const logoY = 40;
+
+    // Logo va EduTest
+    doc.image(logoPath, logoX, logoY, { width: logoWidth })
+      .font('Helvetica-Bold')
+      .fontSize(22)
+      .fillColor('black')
+      .text('EduTest', logoX + logoWidth + 10, logoY + 10);
+
+    // 6️⃣ Tagiga chiziq
+    const lineY = logoY + 60;
+    doc.moveTo(50, lineY)
+      .lineTo(pageWidth - 50, lineY)
+      .strokeColor('#000000')
+      .lineWidth(1)
+      .stroke();
+
+    doc.moveDown(3);
+
+    const startX = 50; // chapdan boshlash
+    const questionIndent = 20;
+    const optionIndent = 40;
+
+
+    // 8️⃣ Testlar va savollar (chapdan)
+    tests.forEach((test, index) => {
+      doc.fontSize(14).fillColor('black')
+        .text(`${index + 1}. Test: ${test.title}`, startX, doc.y);
+
+      doc.fontSize(12).fillColor('gray')
+        .text(`Tavsif: ${test.description}`, startX, doc.y);
+
+      doc.moveDown(0.5);
+
+      test.questions.forEach((question, qIndex) => {
+        doc.fontSize(12).fillColor('black')
+          .text(`${qIndex + 1}) ${question.questionText}`, startX + questionIndent, doc.y);
+
+        question.options.forEach((option, oIndex) => {
+          const label = String.fromCharCode(65 + oIndex);
+          doc.fontSize(11).fillColor('black')
+            .text(`${label}) ${option.optionText} ${option.isCorrect ? '(To‘g‘ri)' : ''}`, startX + optionIndent, doc.y);
+        });
+
+        doc.moveDown(0.5);
+      });
+
+      doc.moveDown(1);
+    });
+
+    // 9️⃣ PDF tugatish
+    doc.end();
+
+    // 10️⃣ Buffer qaytarish
+    return new Promise<Buffer>((resolve, reject) => {
+      doc.on('end', () => resolve(Buffer.concat(buffers)));
+      doc.on('error', (err) => reject(err));
+    });
+  }
+
 }

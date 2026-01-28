@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Req } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Req, Res } from '@nestjs/common';
 import { TestService } from './test.service';
 import { CreateTestDto } from './dto/create-test.dto';
 import { UpdateTestDto } from './dto/update-test.dto';
@@ -6,6 +6,7 @@ import { Roles } from 'src/decorators/role.decorator';
 import { RoleUser } from 'src/enum/enums';
 import { AuthGuard } from 'src/auth/auth.guard';
 import { RoleGuard } from 'src/auth/role.guard';
+import { Response } from 'express';
 
 @Controller('test')
 export class TestController {
@@ -17,6 +18,16 @@ export class TestController {
   @Post()
   create(@Body() createTestDto: CreateTestDto, @Req() req: Request) {
     return this.testService.create(createTestDto, req);
+  }
+
+  @Get('export-to-pdf')
+  // @UseGuards(AuthGuard)
+  async exportPDF(@Res() res: Response) {
+    const buffer = await this.testService.exportTestsToPDF();
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', 'attachment; filename=tests.pdf');
+    return res.send(buffer);
   }
 
   @UseGuards(AuthGuard)
