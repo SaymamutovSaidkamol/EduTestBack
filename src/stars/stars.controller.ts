@@ -24,7 +24,7 @@ export class StarsController {
 
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.starsService.findOne(+id);
+    return this.starsService.findOne(id);
   }
 
   @UseGuards(AuthGuard)

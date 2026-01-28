@@ -72,13 +72,42 @@ export class TestService {
   async findAll() {
 
     try {
-      let allTest = await this.prisma.test.findMany({ include: { questions: { include: { options: true } } } })
+      let allTest = await this.prisma.test.findMany({ include: { questions: { include: { options: true } }, _count: { select: { stars: true, comments: true, likes: true } } } })
 
       if (!allTest) {
         throw new HttpException('Test not found', 404);
       }
 
-      return { allTest }
+      // return { allTest }
+
+      // 2️⃣ Har bir test uchun stars avg va foiz hisoblash
+      const testsWithStars = await Promise.all(
+        allTest.map(async (test) => {
+          // Barcha stars larni olish
+          const stars = await this.prisma.stars.findMany({
+            where: { testId: test.id },
+            select: { stars: true },
+          });
+
+          let avgStar = 0;
+          let starsPercent = 0;
+
+          if (stars.length > 0) {
+            const totalScore = stars.reduce((sum, s) => sum + s.stars, 0);
+            avgStar = totalScore / stars.length;
+            starsPercent = (avgStar / 5) * 100;
+          }
+
+          return {
+            ...test,
+            average_star: Number(avgStar.toFixed(2)),
+            stars_percent: Number(starsPercent.toFixed(2)),
+            stars_count: stars.length,
+          };
+        }),
+      );
+
+      return { allTests: testsWithStars };
     } catch (error) {
       this.Error(error);
     }
