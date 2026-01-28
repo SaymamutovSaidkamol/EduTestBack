@@ -139,6 +139,8 @@ CREATE TABLE "Likes" (
     CONSTRAINT "Likes_pkey" PRIMARY KEY ("id")
 );
 
+ALTER TABLE "Likes" ADD COLUMN "isLike" BOOLEAN DEFAULT false;
+
 -- CreateIndex
 CREATE UNIQUE INDEX "User_email_key" ON "User" ("email");
 

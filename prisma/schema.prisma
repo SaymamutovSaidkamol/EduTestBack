@@ -141,6 +141,7 @@ model Likes {
   id        String   @id @default(uuid())
   studentId String
   testId    String
+  isLike    Boolean
   createdAt DateTime @default(now())
   updateAt  DateTime @updatedAt
   student   User     @relation(fields: [studentId], references: [id], onDelete: Cascade)

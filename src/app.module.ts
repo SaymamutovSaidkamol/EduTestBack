@@ -12,9 +12,10 @@ import { TestVariantsModule } from './test-variants/test-variants.module';
 import { ResultsModule } from './results/results.module';
 import { StarsModule } from './stars/stars.module';
 import { CommentsModule } from './comments/comments.module';
+import { LikesModule } from './likes/likes.module';
 
 @Module({
-  imports: [PrismaModule, UsersModule, MailModule, TestCategoryModule, TestModule, TestVariantsModule, ResultsModule, StarsModule, CommentsModule],
+  imports: [PrismaModule, UsersModule, MailModule, TestCategoryModule, TestModule, TestVariantsModule, ResultsModule, StarsModule, CommentsModule, LikesModule],
   controllers: [AppController],
   providers: [AppService, MailService, EskizService],
 })
