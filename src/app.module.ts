@@ -13,10 +13,11 @@ import { ResultsModule } from './results/results.module';
 import { StarsModule } from './stars/stars.module';
 import { CommentsModule } from './comments/comments.module';
 import { LikesModule } from './likes/likes.module';
+import { UploadModule } from './upload/upload.module';
 
 @Module({
-  imports: [PrismaModule, UsersModule, MailModule, TestCategoryModule, TestModule, TestVariantsModule, ResultsModule, StarsModule, CommentsModule, LikesModule],
+  imports: [PrismaModule, UsersModule, MailModule, TestCategoryModule, TestModule, TestVariantsModule, ResultsModule, StarsModule, CommentsModule, LikesModule, UploadModule],
   controllers: [AppController],
   providers: [AppService, MailService, EskizService],
 })
-export class AppModule {}
+export class AppModule { }
