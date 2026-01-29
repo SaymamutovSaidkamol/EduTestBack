@@ -14,9 +14,20 @@ import { StarsModule } from './stars/stars.module';
 import { CommentsModule } from './comments/comments.module';
 import { LikesModule } from './likes/likes.module';
 import { UploadModule } from './upload/upload.module';
+import { BotModule } from './bot/bot.module';
+import { ConfigModule } from '@nestjs/config';
+import { TelegrafModule } from 'nestjs-telegraf';
+import { session } from 'telegraf';
 
 @Module({
-  imports: [PrismaModule, UsersModule, MailModule, TestCategoryModule, TestModule, TestVariantsModule, ResultsModule, StarsModule, CommentsModule, LikesModule, UploadModule],
+  imports: [PrismaModule, UsersModule, MailModule, TestCategoryModule, TestModule, TestVariantsModule, ResultsModule, StarsModule, CommentsModule, LikesModule, UploadModule,
+    ConfigModule.forRoot({ isGlobal: true }),
+    TelegrafModule.forRoot({
+      token: process.env.BOT_TOKEN!,
+      middlewares: [session()],
+    }),
+    BotModule,
+  ],
   controllers: [AppController],
   providers: [AppService, MailService, EskizService],
 })
