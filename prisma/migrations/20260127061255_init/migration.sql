@@ -20,6 +20,10 @@ CREATE TABLE "User" (
     CONSTRAINT "User_pkey" PRIMARY KEY ("id")
 );
 
+ALTER TABLE "User" ADD COLUMN "telegramId" TEXT UNIQUE;
+
+ALTER TABLE "User" ADD COLUMN "phone" TEXT UNIQUE;
+
 -- CreateTable
 CREATE TABLE "TestCategory" (
     "id" TEXT NOT NULL,

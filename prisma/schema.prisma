@@ -8,21 +8,23 @@ datasource db {
 }
 
 model User {
-  id        String    @id @default(uuid())
-  firstName String
-  lastName  String
-  email     String    @unique
-  password  String
-  image     String
-  role      RoleUser  @default(STUDENT)
-  isActive  Boolean   @default(false)
-  createdAt DateTime  @default(now())
-  updateAt  DateTime  @updatedAt
-  comments  Comment[]
-  likes     Likes[]
-  results   Result[]
-  stars     Stars[]
-  tests     Test[]
+  id         String    @id @default(uuid())
+  firstName  String
+  lastName   String
+  email      String    @unique
+  password   String
+  image      String
+  telegramId String?   @unique
+  phone      String?   @unique
+  role       RoleUser  @default(STUDENT)
+  isActive   Boolean   @default(false)
+  createdAt  DateTime  @default(now())
+  updateAt   DateTime  @updatedAt
+  comments   Comment[]
+  likes      Likes[]
+  results    Result[]
+  stars      Stars[]
+  tests      Test[]
 }
 
 model TestCategory {

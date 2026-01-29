@@ -288,7 +288,9 @@ export class TestService {
     doc.on('end', () => { });
 
     // 3️⃣ Logo yo'li
-    const logoPath = path.resolve(__dirname, '..', '..', 'assets', 'logo.png');
+    // const logoPath = path.resolve(__dirname, '..', '..', '..', 'assets', 'logo.png');
+    const logoPath = path.join(process.cwd(), 'dist', 'src', 'assets', 'logo.png');
+
 
     console.log(logoPath);
 
