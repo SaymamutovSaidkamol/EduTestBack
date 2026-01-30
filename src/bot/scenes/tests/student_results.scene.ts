@@ -15,7 +15,9 @@ export class StudentResultsScene {
             if (!student) return ctx.scene.leave();
 
             const results = await this.prisma.result.findMany({
-                where: { studentId: student.id },
+                where: {
+                    studentId: student.id
+                },
                 include: {
                     test: {
                         include: {
@@ -23,29 +25,31 @@ export class StudentResultsScene {
                             questions: true
                         }
                     }
-                }
+                },
+                orderBy: { createdAt: 'desc' }
             });
 
-            const totalActiveTests = await this.prisma.test.count({ where: { isActive: true } });
-
             if (results.length === 0) {
-                await ctx.reply("Siz hali test topshirmagansiz.");
+                await ctx.reply("Siz hali birorta ham test boshlamagansiz.");
             } else {
-                const completionRate = totalActiveTests > 0 ? Math.round((results.length / totalActiveTests) * 100) : 0;
-
-                let message = `<b>🧑‍🎓 Sizning natijalaringiz va samaradorligingiz:</b>\n`;
-                message += `📊 Umumiy qamrov: ${completionRate}% (mavjud testlardan)\n\n`;
+                let message = `<b>🧑‍🎓 Sizning testlardagi ishtirokingiz:</b>\n\n`;
 
                 results.forEach(res => {
+                    const isFinished = res.status === 'FINISHED';
                     const total = res.test.questions.length;
-                    const correct = res.score ?? 0;
-                    const correctPercent = total > 0 ? Math.round((correct / total) * 100) : 0;
-                    const incorrectPercent = 100 - correctPercent;
 
                     message += `📝 <b>Test: ${res.test.title}</b>\n`;
                     message += `👨‍🏫 Ustoz: ${res.test.Teacher.firstName} ${res.test.Teacher.lastName}\n`;
-                    message += `✅ To'g'ri javoblar: ${correctPercent}%\n`;
-                    message += `❌ Noto'g'ri javoblar: ${incorrectPercent}%\n`;
+
+                    if (isFinished) {
+                        const correct = res.score ?? 0;
+                        const correctPercent = total > 0 ? Math.round((correct / total) * 100) : 0;
+                        message += `✅ Holat: Yakunlangan\n`;
+                        message += `📊 Natija: ${correct}/${total} (${correctPercent}%)\n`;
+                    } else {
+                        message += `⏳ Holat: Davom etmoqda (Yakunlanmagan)\n`;
+                        message += `ℹ️ Testni oxiriga yetkazsangiz natijangiz ko'rinadi.\n`;
+                    }
                     message += `----------------------------\n`;
                 });
 

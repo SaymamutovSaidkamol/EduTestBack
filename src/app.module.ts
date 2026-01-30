@@ -24,7 +24,11 @@ import { session } from 'telegraf';
     ConfigModule.forRoot({ isGlobal: true }),
     TelegrafModule.forRoot({
       token: process.env.BOT_TOKEN!,
-      middlewares: [session()],
+      middlewares: [
+        session({
+          getSessionKey: (ctx) => ctx.from ? `${ctx.from.id}` : undefined
+        })
+      ],
     }),
     BotModule,
   ],

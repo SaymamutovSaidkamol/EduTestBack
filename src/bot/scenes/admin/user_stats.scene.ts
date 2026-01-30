@@ -10,9 +10,10 @@ export class AdminUserStatsScene {
     async onEnter(@Ctx() ctx: Scenes.WizardContext) {
         try {
             const users = await this.prisma.user.findMany({
-                where: { results: { some: {} } },
+                where: { results: { some: { status: 'FINISHED' } } },
                 include: {
                     results: {
+                        where: { status: 'FINISHED' },
                         include: {
                             test: { include: { questions: true } }
                         }
@@ -21,14 +22,14 @@ export class AdminUserStatsScene {
             });
 
             const tests = await this.prisma.test.findMany({
-                include: { results: true }
+                include: { results: { where: { status: 'FINISHED' } } }
             });
 
             if (users.length === 0) {
-                await ctx.reply("Hali test topshirgan foydalanuvchi yo'q.");
+                await ctx.reply("Hali test topshirib yakunlagan foydalanuvchi yo'q.");
             } else {
                 // 1. User Statistics
-                let userMsg = "<b>📊 Foydalanuvchilar statistikasi:</b>\n\n";
+                let userMsg = "<b>📊 Foydalanuvchilar statistikasi (Yakunlanganlar):</b>\n\n";
                 for (const user of users) {
                     let totalScore = 0;
                     let totalPossible = 0;
@@ -83,7 +84,7 @@ export class AdminUserStatsScene {
         await ctx.reply('Userlar bo\'limi:', Markup.keyboard([
             ["Userlarni ko'rish", 'Userni aktivlashtirish'],
             ['Excelga eksport', 'Statistika'],
-            ['Orqaga']
+            ['Userni tahrirlash', 'Orqaga']
         ]).resize());
     }
 }
