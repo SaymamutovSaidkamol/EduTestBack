@@ -50,7 +50,7 @@ export class AdminGetUserScene {
         await ctx.reply('Userlar bo\'limi:', Markup.keyboard([
             ["Userlarni ko'rish", 'Userni aktivlashtirish'],
             ['Excelga eksport', 'Statistika'],
-            ['Orqaga']
+            ['Userni tahrirlash', 'Orqaga']
         ]).resize());
     }
 }

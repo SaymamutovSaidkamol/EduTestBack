@@ -93,7 +93,7 @@ export class BotUpdate implements OnModuleInit {
       await ctx.reply('Userlar bo\'limi:', Markup.keyboard([
         ["Userlarni ko'rish", 'Userni aktivlashtirish'],
         ['Excelga eksport', 'Statistika'],
-        ['Orqaga']
+        ['Userni tahrirlash', 'Orqaga']
       ]).resize());
     } else if (text === 'TestCategory') {
       await ctx.reply('Test Kategoriyalari bo\'limi:', Markup.keyboard([
@@ -120,6 +120,8 @@ export class BotUpdate implements OnModuleInit {
       if (ctx.scene) await ctx.scene.enter('admin-export-users');
     } else if (text === 'Statistika') {
       if (ctx.scene) await ctx.scene.enter('admin-user-stats');
+    } else if (text === 'Userni tahrirlash') {
+      if (ctx.scene) await ctx.scene.enter('admin-update-user');
     } else if (text === 'My Tests') {
       if (ctx.scene) await ctx.scene.enter('teacher-my-tests');
     } else if (text === 'My Results') {
@@ -150,6 +152,64 @@ export class BotUpdate implements OnModuleInit {
         await ctx.replyWithHTML(msg);
       }
     }
+  }
+
+  @Action(/^show_test_info_(.+)$/)
+  async onShowTestInfo(@Ctx() ctx: any) {
+    try {
+      const testId = ctx.match[1];
+      const telegramId = String(ctx.from?.id);
+
+      const user = await this.prisma.user.findUnique({ where: { telegramId } });
+      if (!user) return ctx.reply("User topilmadi.");
+
+      const test = await this.prisma.test.findUnique({
+        where: { id: testId },
+        include: {
+          category: true,
+          questions: true,
+          results: {
+            where: { studentId: user.id, status: 'FINISHED' }
+          }
+        }
+      });
+
+      if (!test) return ctx.reply("Test topilmadi.");
+
+      const isCompleted = test.results.length > 0;
+      let msg = `<b>Test: ${test.title}</b>\n`;
+      msg += `📂 Kategoriya: ${test.category?.categoryName || 'Kategoriyasiz'}\n`;
+      msg += `📝 Savollar soni: ${test.questions.length}\n`;
+      msg += `📄 Tavsif: ${test.description}\n\n`;
+
+      if (isCompleted) {
+        msg += `✅ <b>Siz ushbu testni muvaffaqiyatli topshirib bo'lgansiz.</b>\n`;
+        const score = test.results[0].score;
+        msg += `📊 Natijangiz: ${score}/${test.questions.length}`;
+
+        await ctx.editMessageText(msg, {
+          parse_mode: 'HTML',
+          ...Markup.inlineKeyboard([[Markup.button.callback('⬅️ Orqaga', 'view_all_tests')]])
+        });
+      } else {
+        await ctx.editMessageText(msg, {
+          parse_mode: 'HTML',
+          ...Markup.inlineKeyboard([
+            [Markup.button.callback('🚀 Testni boshlash', `solve_${test.id}`)],
+            [Markup.button.callback('⬅️ Orqaga', 'view_all_tests')]
+          ])
+        });
+      }
+    } catch (e) {
+      console.error(e);
+      await ctx.reply("Xatolik yuz berdi.");
+    }
+  }
+
+  @Action('view_all_tests')
+  async onViewAllTests(@Ctx() ctx: any) {
+    await ctx.deleteMessage();
+    if (ctx.scene) await ctx.scene.enter('view-tests');
   }
 
   @Action(/^solve_(.+)$/)

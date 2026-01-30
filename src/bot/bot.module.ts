@@ -15,6 +15,8 @@ import { ViewTestsScene } from './scenes/tests/view_tests.scene';
 import { SolveTestScene } from './scenes/tests/solve_test.scene';
 import { TeacherMyTestsScene } from './scenes/tests/teacher_my_tests.scene';
 import { StudentResultsScene } from './scenes/tests/student_results.scene';
+import { AdminUpdateUserScene } from './scenes/admin/update_user.scene';
+import { TeacherCreateTestScene } from './scenes/tests/create_test.scene';
 
 @Module({
   imports: [PrismaModule],
@@ -33,7 +35,9 @@ import { StudentResultsScene } from './scenes/tests/student_results.scene';
     ViewTestsScene,
     SolveTestScene,
     TeacherMyTestsScene,
-    StudentResultsScene
+    StudentResultsScene,
+    AdminUpdateUserScene,
+    TeacherCreateTestScene
   ],
 })
 export class BotModule { }
