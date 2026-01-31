@@ -90,7 +90,7 @@ export class UsersController {
   }
 
 
-  // @Roles(RoleUser.ADMIN)
+  @Roles(RoleUser.ADMIN)
   @UseGuards(AuthGuard)
   @Patch('for-admin/:id')
   updateForAdmin(@Param('id') id: string, @Body() UpdateUserForAdminDto: UpdateUserForAdminDto, @Req() req: Request) {
