@@ -4,8 +4,17 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { UpdateStarDto } from './dto/update-star.dto';
 import { GetTopTestsQueryDto } from './dto/query-star.dto';
 
+
+interface TestData {
+  id: string;
+  title: string;
+  description: string;
+}
+
 @Injectable()
 export class StarsService {
+
+
 
   constructor(private prisma: PrismaService) { }
 
@@ -86,17 +95,94 @@ export class StarsService {
     }
   }
 
+
+
+  // async findAll(query: GetTopTestsQueryDto) {
+  //   try {
+
+
+
+  //     const page = Number(query.page) || 1;
+  //     const limit = Number(query.limit) || 10;
+  //     const skip = (page - 1) * limit;
+
+  //     // 2️⃣ Sort
+  //     const order: 'asc' | 'desc' =
+  //       query.sortBy === 'lowest-scoring' ? 'asc' : 'desc';
+
+  //     // 3️⃣ Where filter
+  //     let where: any = undefined;
+  //     if (query.minStar !== undefined || query.maxStar !== undefined) {
+  //       where = {
+  //         stars: {
+  //           ...(query.minStar !== undefined ? { gte: Number(query.minStar) } : {}),
+  //           ...(query.maxStar !== undefined ? { lte: Number(query.maxStar) } : {}),
+  //         },
+  //       };
+  //     }
+
+  //     // 4️⃣ GroupBy
+  //     const grouped = await this.prisma.stars.groupBy({
+  //       by: ['testId'],
+  //       where,
+  //       _avg: { stars: true },
+  //       _count: { stars: true },
+  //       orderBy: { _avg: { stars: order } },
+  //       skip,
+  //       take: limit,
+  //     });
+
+  //     const testIds = grouped.map((g) => g.testId);
+
+  //     // 5️⃣ Test ma’lumotlarini olish
+  //     const tests = await this.prisma.test.findMany({
+  //       where: { id: { in: testIds } },
+  //       select: { id: true, title: true, description: true },
+  //     });
+
+  //     const testMap = new Map(tests.map((t) => [t.id, t]));
+
+  //     // 6️⃣ Natijani tayyorlash
+  //     const data = grouped.map((g) => {
+  //       const test = testMap.get(g.testId);
+  //       return {
+  //         testId: g.testId,
+  //         title: test?.title ?? null,
+  //         description: test?.description ?? null,
+  //         avgStar: Number((g._avg?.stars ?? 0).toFixed(2)),
+  //         votes: g._count?.stars ?? 0,
+  //       };
+  //     });
+
+  //     return {
+  //       meta: {
+  //         page,
+  //         limit,
+  //         total: data.length,
+  //         sortBy: query.sortBy,
+  //         minStar: query.minStar ?? null,
+  //         maxStar: query.maxStar ?? null,
+  //       },
+  //       data,
+  //     };
+
+
+  //   } catch (error) {
+  //     this.Error(error);
+  //   }
+  // }
+
   async findAll(query: GetTopTestsQueryDto) {
     try {
       const page = Number(query.page) || 1;
       const limit = Number(query.limit) || 10;
       const skip = (page - 1) * limit;
 
-      // 2️⃣ Sort
+      // Sort
       const order: 'asc' | 'desc' =
         query.sortBy === 'lowest-scoring' ? 'asc' : 'desc';
 
-      // 3️⃣ Where filter
+      // Where filter
       let where: any = undefined;
       if (query.minStar !== undefined || query.maxStar !== undefined) {
         where = {
@@ -107,7 +193,7 @@ export class StarsService {
         };
       }
 
-      // 4️⃣ GroupBy
+      // GroupBy
       const grouped = await this.prisma.stars.groupBy({
         by: ['testId'],
         where,
@@ -120,15 +206,15 @@ export class StarsService {
 
       const testIds = grouped.map((g) => g.testId);
 
-      // 5️⃣ Test ma’lumotlarini olish
-      const tests = await this.prisma.test.findMany({
+      // Test ma’lumotlarini olish
+      const tests: TestData[] = await this.prisma.test.findMany({
         where: { id: { in: testIds } },
         select: { id: true, title: true, description: true },
       });
 
-      const testMap = new Map(tests.map((t) => [t.id, t]));
+      const testMap = new Map<string, TestData>(tests.map((t) => [t.id, t]));
 
-      // 6️⃣ Natijani tayyorlash
+      // Natijani tayyorlash
       const data = grouped.map((g) => {
         const test = testMap.get(g.testId);
         return {
@@ -151,8 +237,6 @@ export class StarsService {
         },
         data,
       };
-
-
     } catch (error) {
       this.Error(error);
     }
