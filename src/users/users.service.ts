@@ -313,7 +313,7 @@ export class UsersService {
         throw new NotFoundException("User not found")
       }
 
-      if (checkUser.id !== req['user'].userId) {
+      if (checkUser.id !== req['user'].userId && req['user'].role !== RoleUser.ADMIN) {
         throw new BadRequestException("You are not authorized to perform this action")
       }
 
