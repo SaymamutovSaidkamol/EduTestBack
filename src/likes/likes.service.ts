@@ -32,7 +32,8 @@ export class LikesService {
 
       let checkLike = await this.prisma.likes.findFirst({ where: { isLike: true, testId: body.testId, studentId: req['user'].userId } })
       if (checkLike) {
-        throw new BadRequestException('Like already exists');
+        let deleteLike = await this.prisma.likes.delete({ where: { id: checkLike.id } })
+        return { data: deleteLike, message: 'Like deleted successfully' }
       }
 
       let createLike = await this.prisma.likes.create({ data: { studentId: req['user'].userId, testId: body.testId, isLike: true } })
